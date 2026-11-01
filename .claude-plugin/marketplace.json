@@ -1,0 +1,16 @@
+{
+  "name": "claude-expense-tracker",
+  "description": "Учёт личных трат для Claude Code: Яндекс Пэй, чеки Ленты, Яндекс Еда, база в Notion и отчёт за месяц",
+  "owner": {
+    "name": "homka122",
+    "url": "https://github.com/homka122"
+  },
+  "plugins": [
+    {
+      "name": "expense-tracker",
+      "source": "./plugins/expense-tracker",
+      "description": "Сверяет платежи Яндекс Пэй с базой трат в Notion, подтягивает чеки Ленты и Яндекс Еды, строит отчёт за месяц",
+      "version": "0.1.0"
+    }
+  ]
+}

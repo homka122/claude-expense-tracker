@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Демо-месяц</title>
+<style>
+.viz-root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface-1: #fcfcfb;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.10);
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .viz-root {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface-1: #1a1a19;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+  }
+}
+:root[data-theme="dark"] .viz-root {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface-1: #1a1a19;
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --border: rgba(255, 255, 255, 0.10);
+  --series-1: #3987e5;
+  --series-2: #d95926;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+.viz-root {
+  background: var(--page); color: var(--text-primary);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  min-height: 100vh; padding: 32px 20px 64px;
+}
+.wrap { max-width: 980px; margin: 0 auto; }
+h1 { font-size: 26px; font-weight: 650; margin: 0 0 4px; }
+h2 { font-size: 18px; font-weight: 600; margin: 0 0 2px; }
+.sub { color: var(--text-secondary); margin: 0 0 20px; }
+.card {
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
+  padding: 20px 20px 16px; margin: 0 0 20px;
+}
+.card .sub { margin-bottom: 12px; font-size: 14px; }
+.card .empty { color: var(--text-muted); font-size: 14px; margin: 4px 0 0; }
+.kpis { display: grid; grid-template-columns: 1.6fr repeat(4, 1fr); gap: 12px; margin: 0 0 20px; }
+.kpi { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.kpi .label { color: var(--text-secondary); font-size: 13px; }
+.kpi .value { font-size: 24px; font-weight: 600; margin-top: 2px; white-space: nowrap; }
+.kpi .note { color: var(--text-muted); font-size: 12.5px; }
+.kpi.hero .value { font-size: 48px; line-height: 1.1; }
+@media (max-width: 860px) { .kpis { grid-template-columns: 1fr 1fr; } .kpi.hero { grid-column: 1 / -1; } }
+.legend { display: flex; gap: 18px; color: var(--text-secondary); font-size: 13px; margin: 0 0 8px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+svg text { fill: var(--text-secondary); font-size: 12.5px; }
+svg .val { fill: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
+svg .tick { fill: var(--text-muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+svg .mark { cursor: default; transition: opacity .12s; }
+svg g.col:hover .mark, svg g.row:hover .mark, svg g.col:focus .mark, svg g.row:focus .mark { opacity: .78; }
+svg g:focus { outline: none; }
+details { margin-top: 10px; color: var(--text-secondary); font-size: 13.5px; }
+summary { cursor: pointer; }
+table { border-collapse: collapse; margin-top: 8px; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--grid); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+#tip {
+  position: fixed; pointer-events: none; z-index: 10; display: none;
+  background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; font-size: 13px; box-shadow: 0 4px 16px rgba(0,0,0,.12);
+}
+#tip .t { color: var(--text-secondary); margin-bottom: 2px; }
+#tip .r { display: flex; align-items: center; gap: 8px; }
+#tip .r b { font-variant-numeric: tabular-nums; }
+#tip .k { width: 12px; height: 2px; border-radius: 1px; display: inline-block; }
+.findings li, .todo li { margin: 0 0 8px; }
+.todo td:first-child { width: 58%; }
+.foot { color: var(--text-muted); font-size: 12.5px; }
+.theme { float: right; font: inherit; font-size: 13px; color: var(--text-secondary); background: none; border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="viz-root">
+<div class="wrap">
+  <button class="theme" id="theme" type="button">Тема</button>
+  <h1>Демо-месяц</h1>
+  <p class="sub" id="period"></p>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="card">
+    <h2>На что ушли деньги</h2>
+    <p class="sub" id="groups-sub"></p>
+    <div id="groups"></div>
+    <details><summary>Таблица</summary><table id="groups-table"></table></details>
+  </div>
+
+  <div class="card">
+    <h2>Траты по дням</h2>
+    <p class="sub" id="daily-sub"></p>
+    <div class="legend"><span><i style="background:var(--series-1)"></i>Базовое</span><span><i style="background:var(--series-2)"></i>Необязательное</span></div>
+    <div id="daily"></div>
+    <details><summary>Таблица</summary><table id="daily-table"></table></details>
+  </div>
+
+  <div class="card">
+    <h2>Необязательное</h2>
+    <p class="sub" id="optional-sub"></p>
+    <div id="optional"></div>
+    <details><summary>Таблица</summary><table id="optional-table"></table></details>
+  </div>
+
+  <div class="card" id="habits-card" hidden>
+    <h2>Привычки</h2>
+    <p class="sub" id="habits-sub"></p>
+    <div id="habits"></div>
+    <details><summary>Таблица</summary><table id="habits-table"></table></details>
+  </div>
+
+  <div class="card">
+    <h2>Где</h2>
+    <p class="sub">По местам, без крупных покупок, ₽</p>
+    <div id="where"></div>
+    <details><summary>Таблица</summary><table id="where-table"></table></details>
+  </div>
+
+<!--
+  Выводы к демо-отчёту по examples/demo-month.csv. Месяц и все данные выдуманы.
+  Числа посчитаны по этому CSV (вывод build_report.py с --config config.example.json).
+  Формат — как в references/findings-template.html.
+-->
+  <div class="card">
+    <h2>Выводы</h2>
+    <ol class="findings">
+      <li><b>Всего 29 404 ₽, из них 10 389 ₽ — две крупные покупки</b> (колонка 5 999 ₽ и кроссовки 4 390 ₽). Без них повседневные траты 19 015 ₽, в среднем 613 ₽ в день.</li>
+      <li><b>Готовой еды больше, чем продуктов:</b> 4 084 ₽ против 3 845 ₽. Необязательное — 9 882 ₽, это 52% повседневных; 1 500 ₽ из них — подарок деньгами.</li>
+      <li><b>Привычки месяца:</b> фастфуд 5 раз на 1 841 ₽ (в среднем 368 ₽), кофе с собой 5 стаканов на 1 320 ₽ (264 ₽ за стакан), такси 2 раза на 948 ₽.</li>
+      <li><b>Переплата на доставке:</b> к заказу продуктов на 612 ₽ доставка добавила 199 ₽ — треть сверху. Всего сборы за доставку и сборку — 298 ₽.</li>
+      <li><b>Подарки и траты на других — 2 174 ₽.</b> Они уже входят в итог: перевод на день рождения, шоколад в подарок и половина пиццы за друга.</li>
+    </ol>
+  </div>
+
+  <div class="card todo">
+    <h2>Что улучшить</h2>
+    <p class="sub">Оценка экономии в месяц при тех же привычках, если делать чуть иначе</p>
+    <table>
+      <thead><tr><th>Что сделать</th><th class="num">≈ экономия / мес</th></tr></thead>
+      <tbody>
+        <tr><td>Кофе с собой 3 раза вместо 5, в остальные дни — дома</td><td class="num">528 ₽</td></tr>
+        <tr><td>Одну поездку на такси заменить метро</td><td class="num">394 ₽</td></tr>
+        <tr><td>Мелкий заказ продуктов с доставкой добавлять в большую закупку</td><td class="num">199 ₽</td></tr>
+        <tr><td><b>Итого</b></td><td class="num"><b>~1 100 ₽</b></td></tr>
+      </tbody>
+    </table>
+    <ul style="margin-top:14px">
+      <li><b>Учёт.</b> Месяц сверен с банком. У 3 строк состав подобран по прошлым ценам (16 и 23 октября).</li>
+    </ul>
+  </div>
+
+  <p class="foot">Источник: выдуманный демо-месяц <code>examples/demo-month.csv</code>, 74 строки за 1–31 октября 2026. Подобрано по ценам: 3 строки.</p>
+
+</div>
+<div id="tip"></div>
+</div>
+<script>
+const DATA = {"period": "1–31 октября 2026", "days": 31, "rows": 74, "groupBy": "category", "total": 29403.85, "everyday": 19014.85, "perDay": 613.38, "big": 10389.0, "bigCount": 2, "bigItems": "Портативная колонка 10.10, Кроссовки 18.10", "bigNote": "Без крупных покупок (Портативная колонка 10.10, Кроссовки 18.10) — они смазали бы масштаб", "bigThreshold": 2000, "optional": 9881.96, "optionalShare": 0.5197, "gifts": 2173.99, "giftRows": 3, "guessedRows": 3, "habitsTotal": 4772.98, "groups": [{"label": "Электроника", "value": 5999.0}, {"label": "Одежда", "value": 4390.0}, {"label": "Готовая еда", "value": 4083.98}, {"label": "Продукты", "value": 3844.96}, {"label": "Транспорт", "value": 2148.0}, {"label": "Напитки", "value": 1733.98}, {"label": "Стрижка / уход", "value": 1629.99}, {"label": "Перевод на карту", "value": 1500.0}, {"label": "Подписки и цифровое", "value": 1457.0}, {"label": "Снеки и сладкое", "value": 1013.97}, {"label": "Бытовые товары", "value": 634.98}, {"label": "Связь / интернет", "value": 600.0}, {"label": "Доставка", "value": 298.0}, {"label": "Кухонные товары", "value": 69.99}], "daily": [{"date": "2026-10-01", "base": 351.38, "opt": 0.0}, {"date": "2026-10-02", "base": 80.0, "opt": 420.0}, {"date": "2026-10-03", "base": 1485.36, "opt": 84.99}, {"date": "2026-10-04", "base": 0.0, "opt": 490.0}, {"date": "2026-10-05", "base": 999.0, "opt": 0.0}, {"date": "2026-10-06", "base": 338.0, "opt": 299.0}, {"date": "2026-10-07", "base": 0.0, "opt": 378.0}, {"date": "2026-10-08", "base": 160.0, "opt": 0.0}, {"date": "2026-10-09", "base": 0.0, "opt": 436.0}, {"date": "2026-10-10", "base": 0.0, "opt": 649.0}, {"date": "2026-10-11", "base": 0.0, "opt": 899.0}, {"date": "2026-10-12", "base": 612.16, "opt": 199.0}, {"date": "2026-10-13", "base": 160.0, "opt": 260.0}, {"date": "2026-10-14", "base": 1300.0, "opt": 0.0}, {"date": "2026-10-15", "base": 0.0, "opt": 1849.99}, {"date": "2026-10-16", "base": 44.99, "opt": 199.99}, {"date": "2026-10-17", "base": 708.27, "opt": 218.99}, {"date": "2026-10-18", "base": 0.0, "opt": 0.0}, {"date": "2026-10-19", "base": 160.0, "opt": 0.0}, {"date": "2026-10-20", "base": 0.0, "opt": 700.0}, {"date": "2026-10-21", "base": 0.0, "opt": 290.0}, {"date": "2026-10-22", "base": 529.98, "opt": 0.0}, {"date": "2026-10-23", "base": 160.0, "opt": 260.0}, {"date": "2026-10-24", "base": 0.0, "opt": 549.0}, {"date": "2026-10-25", "base": 159.0, "opt": 0.0}, {"date": "2026-10-26", "base": 964.77, "opt": 0.0}, {"date": "2026-10-27", "base": 160.0, "opt": 0.0}, {"date": "2026-10-28", "base": 0.0, "opt": 468.0}, {"date": "2026-10-29", "base": 0.0, "opt": 512.0}, {"date": "2026-10-30", "base": 679.98, "opt": 0.0}, {"date": "2026-10-31", "base": 80.0, "opt": 719.0}], "optionalGroups": [{"label": "Готовая еда", "value": 3733.99}, {"label": "Перевод на карту", "value": 1500.0}, {"label": "Напитки", "value": 1489.0}, {"label": "Снеки и сладкое", "value": 1013.97}, {"label": "Транспорт", "value": 948.0}, {"label": "Подписки и цифровое", "value": 899.0}, {"label": "Доставка", "value": 298.0}], "habits": [{"label": "Фастфуд", "value": 1841.0, "count": 5, "unit": "раз"}, {"label": "Кофе с собой", "value": 1320.0, "count": 5, "unit": "шт"}, {"label": "Такси", "value": 948.0, "count": 2, "unit": "раз"}, {"label": "Сладкое и снеки", "value": 663.98, "count": 3, "unit": "шт"}], "where": [{"label": "Лента", "value": 2847.6}, {"label": "Перекрёсток", "value": 1775.93}, {"label": "Шоколадница", "value": 1550.0}, {"label": "Перевод на карту", "value": 1500.0}, {"label": "Стрижка / уход", "value": 1300.0}, {"label": "Транспорт", "value": 1200.0}, {"label": "Додо Пицца", "value": 1198.0}, {"label": "Яндекс Go", "value": 948.0}, {"label": "ВкусВилл", "value": 936.0}, {"label": "Steam", "value": 899.0}, {"label": "Остальное", "value": 4860.32}]};
+const NS = "http://www.w3.org/2000/svg";
+const SP = /[\u00a0\u202f]/g;
+const num = v => Math.round(v).toLocaleString("ru-RU").replace(SP, " ");
+const rub = v => num(v) + " ₽";
+const rub2 = v => v.toLocaleString("ru-RU", {minimumFractionDigits: 2, maximumFractionDigits: 2}).replace(SP, " ") + " ₽";
+const pct = v => (!isFinite(v) ? "—" : (v > 0 && v < 0.005 ? "<1" : Math.round(v * 100)) + "%");
+const fmtDate = s => { const [y, m, d] = s.split("-"); return `${+d}.${m}`; };
+const WD = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
+function many(n, unit) {
+  if (unit !== "раз") return `${n} ${unit}`;
+  const d = n % 10, h = n % 100;
+  return `${n} ${d >= 2 && d <= 4 && (h < 12 || h > 14) ? "раза" : "раз"}`;
+}
+
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function text(parent, x, y, s, attrs = {}) {
+  const t = el("text", {x, y, ...attrs}, parent);
+  t.textContent = s;
+  return t;
+}
+function empty(container, msg) {
+  const p = document.createElement("p"); p.className = "empty"; p.textContent = msg;
+  container.appendChild(p);
+}
+function clip(s, max) { return s.length > max ? s.slice(0, max - 1) + "…" : s; }
+// bar with 4px rounded data-end, square at the baseline
+function hbarPath(x, y, w, h, r = 4) {
+  r = Math.min(r, w, h / 2);
+  return `M${x},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h - r}Q${x + w},${y + h} ${x + w - r},${y + h}H${x}Z`;
+}
+function vbarPath(x, y, w, h, roundTop) {
+  const r = roundTop ? Math.min(4, h, w / 2) : 0;
+  return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`;
+}
+function niceStep(max, target = 5) {
+  const raw = max / target, p = Math.pow(10, Math.floor(Math.log10(raw)));
+  for (const m of [1, 2, 2.5, 5, 10]) if (raw <= m * p) return m * p;
+  return 10 * p;
+}
+
+const tip = document.getElementById("tip");
+function showTip(ev, title, rows) {
+  tip.replaceChildren();
+  const t = document.createElement("div"); t.className = "t"; t.textContent = title; tip.appendChild(t);
+  for (const [key, label, value] of rows) {
+    const r = document.createElement("div"); r.className = "r";
+    if (key) { const k = document.createElement("i"); k.className = "k"; k.style.background = key; r.appendChild(k); }
+    const b = document.createElement("b"); b.textContent = value; r.appendChild(b);
+    if (label) { const s = document.createElement("span"); s.textContent = label; r.appendChild(s); }
+    tip.appendChild(r);
+  }
+  tip.style.display = "block";
+  moveTip(ev);
+}
+function moveTip(ev) {
+  const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = ev.clientX + pad, y = ev.clientY + pad;
+  if (x + w > innerWidth - 8) x = ev.clientX - w - pad;
+  if (y + h > innerHeight - 8) y = ev.clientY - h - pad;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+function hideTip() { tip.style.display = "none"; }
+
+function hbars(container, items, {valueLabel, tipRows, labelW = 230, emptyMsg = "Нет данных за период"}) {
+  if (!items.length) return empty(container, emptyMsg);
+  const W = 940, rowH = 34, barH = 20, right = 150;
+  const H = items.length * rowH + 6;
+  const svg = el("svg", {viewBox: `0 0 ${W} ${H}`, role: "img"}, container);
+  const max = Math.max(...items.map(i => i.value), 0) || 1;
+  const plotW = W - labelW - right, maxChars = Math.floor((labelW - 14) / 7.2);
+  el("line", {x1: labelW, x2: labelW, y1: 0, y2: H, stroke: "var(--axis)", "stroke-width": 1}, svg);
+  items.forEach((it, i) => {
+    const y = i * rowH + 7, w = Math.max(2, Math.max(0, it.value) / max * plotW);
+    const g = el("g", {class: "row", tabindex: 0}, svg);
+    text(g, labelW - 10, y + barH / 2 + 4.5, clip(it.label, maxChars), {"text-anchor": "end"});
+    el("path", {class: "mark", d: hbarPath(labelW, y, w, barH), fill: "var(--series-1)"}, g);
+    text(g, labelW + w + 8, y + barH / 2 + 4.5, valueLabel(it), {class: "val"});
+    el("rect", {x: 0, y: y - 6, width: W, height: rowH, fill: "transparent"}, g);
+    const on = ev => showTip(ev, it.label, tipRows(it));
+    g.addEventListener("pointermove", on);
+    g.addEventListener("pointerleave", hideTip);
+    g.addEventListener("focus", () => { const b = g.getBoundingClientRect(); on({clientX: b.left + labelW, clientY: b.top}); });
+    g.addEventListener("blur", hideTip);
+  });
+}
+
+function table(id, head, rows) {
+  const t = document.getElementById(id);
+  const thead = t.createTHead().insertRow();
+  head.forEach(([h, isNum]) => { const th = document.createElement("th"); th.textContent = h; if (isNum) th.className = "num"; thead.appendChild(th); });
+  const tb = t.createTBody();
+  rows.forEach(r => { const tr = tb.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (head[i][1]) td.className = "num"; }); });
+}
+
+function columns(container, days) {
+  const sums = days.map(d => Math.max(0, d.base) + Math.max(0, d.opt));
+  if (!days.length || !Math.max(...sums)) return empty(container, "Повседневных трат за период нет");
+  const W = 940, H = 300, left = 56, bottom = 40, top = 18, right = 8;
+  const svg = el("svg", {viewBox: `0 0 ${W} ${H}`, role: "img"}, container);
+  const max = Math.max(...sums);
+  const step = niceStep(max);
+  const yMax = Math.ceil(max / step) * step;
+  const plotH = H - top - bottom, plotW = W - left - right;
+  const y = v => top + plotH - v / yMax * plotH;
+  for (let v = 0; v <= yMax + 1e-9; v += step) {
+    el("line", {x1: left, x2: W - right, y1: y(v), y2: y(v), stroke: v ? "var(--grid)" : "var(--axis)", "stroke-width": 1}, svg);
+    text(svg, left - 8, y(v) + 4, num(v), {"text-anchor": "end", class: "tick"});
+  }
+  const band = plotW / days.length, bw = Math.max(1, Math.min(24, band - 8, band * 0.75));
+  const every = Math.max(1, Math.ceil(days.length / 16));
+  days.forEach((d, i) => {
+    const base = Math.max(0, d.base), opt = Math.max(0, d.opt);
+    const x = left + i * band + (band - bw) / 2;
+    const g = el("g", {class: "col", tabindex: 0}, svg);
+    el("rect", {x: left + i * band, y: top, width: band, height: plotH, fill: "transparent"}, g);
+    const hb = base / yMax * plotH, ho = opt / yMax * plotH, gap = base && opt ? 2 : 0;
+    if (base) el("path", {class: "mark", d: vbarPath(x, y(base), bw, hb, !opt), fill: "var(--series-1)"}, g);
+    if (opt) el("path", {class: "mark", d: vbarPath(x, y(base + opt), bw, Math.max(0, ho - gap), true), fill: "var(--series-2)"}, g);
+    const date = new Date(d.date + "T12:00:00");
+    if (i % every === 0) text(svg, x + bw / 2, H - bottom + 16, fmtDate(d.date), {"text-anchor": "middle", class: "tick"});
+    const on = ev => showTip(ev, `${fmtDate(d.date)}, ${WD[date.getDay()]} · ${rub(d.base + d.opt)}`, [
+      ["var(--series-1)", "базовое", rub(d.base)], ["var(--series-2)", "необязательное", rub(d.opt)]]);
+    g.addEventListener("pointermove", on);
+    g.addEventListener("pointerleave", hideTip);
+    g.addEventListener("focus", () => { const b = g.getBoundingClientRect(); on({clientX: b.left, clientY: b.top}); });
+    g.addEventListener("blur", hideTip);
+  });
+  const pi = sums.indexOf(max);
+  text(svg, left + pi * band + band / 2, y(max) - 6, rub(max), {"text-anchor": "middle", class: "val"});
+}
+
+const D = DATA;
+const BY = D.groupBy === "type" ? "типам" : "категориям";
+document.getElementById("period").textContent = `${D.period} · ${D.days} дн. · ${D.rows} записей`;
+document.getElementById("groups-sub").textContent = `Все траты за ${D.period} по ${BY}, ₽`;
+document.getElementById("daily-sub").textContent = D.bigNote;
+const kpis = [
+  ["hero", "Всего потрачено", rub(D.total), D.period],
+  ["", "Повседневные", rub(D.everyday), `≈ ${rub(D.perDay)} в день`],
+  ["", "Крупные покупки", rub(D.big), D.bigItems || `дороже ${rub(D.bigThreshold)} не было`],
+  ["", "Необязательное", rub(D.optional), `${pct(D.optionalShare)} повседневных`],
+  ["", "Подарки и траты на других", rub(D.gifts), D.giftRows ? "уже внутри итога" : "не было"],
+];
+const kp = document.getElementById("kpis");
+for (const [cls, label, value, note] of kpis) {
+  const k = document.createElement("div"); k.className = "kpi " + cls;
+  for (const [c, s] of [["label", label], ["value", value], ["note", note]]) {
+    const e = document.createElement("div"); e.className = c; e.textContent = s; k.appendChild(e);
+  }
+  kp.appendChild(k);
+}
+
+hbars(document.getElementById("groups"), D.groups, {
+  valueLabel: it => `${rub(it.value)} · ${pct(it.value / D.total)}`,
+  tipRows: it => [[null, `${pct(it.value / D.total)} всех трат`, rub2(it.value)]],
+});
+table("groups-table", [["Группа"], ["₽", 1], ["Доля", 1]], D.groups.map(g => [g.label, rub2(g.value), pct(g.value / D.total)]));
+
+columns(document.getElementById("daily"), D.daily);
+table("daily-table", [["День"], ["Базовое", 1], ["Необязательное", 1], ["Итого", 1]],
+  D.daily.map(d => [fmtDate(d.date), rub2(d.base), rub2(d.opt), rub2(d.base + d.opt)]));
+
+document.getElementById("optional-sub").textContent =
+  `Без крупных покупок · ${rub(D.optional)}, это ${pct(D.optionalShare)} повседневных трат`;
+hbars(document.getElementById("optional"), D.optionalGroups, {
+  valueLabel: it => `${rub(it.value)} · ${pct(it.value / D.optional)}`,
+  tipRows: it => [[null, `${pct(it.value / D.optional)} необязательного`, rub2(it.value)]],
+  emptyMsg: "Необязательных трат за период нет",
+});
+table("optional-table", [["Группа"], ["₽", 1], ["Доля", 1]],
+  D.optionalGroups.map(g => [g.label, rub2(g.value), pct(g.value / D.optional)]));
+
+if (D.habits.length) {
+  document.getElementById("habits-card").hidden = false;
+  document.getElementById("habits-sub").textContent =
+    `Только себе, без подарков · ${rub(D.habitsTotal)}, это ${pct(D.habitsTotal / D.total)} всех трат`;
+  hbars(document.getElementById("habits"), D.habits, {
+    valueLabel: it => `${rub(it.value)} · ${many(it.count, it.unit)}`,
+    tipRows: it => [[null, `${many(it.count, it.unit)}, в среднем ${rub(it.value / (it.count || 1))}`, rub2(it.value)]],
+    labelW: 260,
+  });
+  table("habits-table", [["Что"], ["Сколько", 1], ["₽", 1], ["В среднем", 1]],
+    D.habits.map(h => [h.label, many(h.count, h.unit), rub2(h.value), rub(h.value / (h.count || 1))]));
+}
+
+hbars(document.getElementById("where"), D.where, {
+  valueLabel: it => rub(it.value),
+  tipRows: it => [[null, `${pct(it.value / D.everyday)} повседневных трат`, rub2(it.value)]],
+});
+table("where-table", [["Где"], ["₽", 1]], D.where.map(w => [w.label, rub2(w.value)]));
+
+document.getElementById("theme").addEventListener("click", () => {
+  const root = document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+});
+</script>
+</body>
+</html>

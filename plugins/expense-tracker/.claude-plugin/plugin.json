@@ -1,0 +1,24 @@
+{
+  "name": "expense-tracker",
+  "description": "Учёт трат в Notion: платежи Яндекс Пэй, чеки Ленты, заказы Яндекс Еды и отчёт за месяц с графиками",
+  "version": "0.1.0",
+  "author": {
+    "name": "homka122",
+    "url": "https://github.com/homka122"
+  },
+  "homepage": "https://github.com/homka122/claude-expense-tracker",
+  "repository": "https://github.com/homka122/claude-expense-tracker",
+  "license": "MIT",
+  "keywords": [
+    "expenses",
+    "budget",
+    "personal-finance",
+    "notion",
+    "yandex-pay",
+    "yandex-bank",
+    "lenta",
+    "yandex-eda",
+    "receipts",
+    "report"
+  ]
+}
